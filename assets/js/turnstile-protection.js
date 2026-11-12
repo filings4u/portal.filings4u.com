@@ -7,6 +7,7 @@ const ACTIONS={
   'customer-login.html':'client_login',
   'forgot-password.html':'client_forgot',
   'reset-password.html':'client_reset',
+  'recover-password.html':'client_reset',
   'admin-forgot-password.html':'admin_forgot',
   'admin-reset-password.html':'admin_reset'
 };
@@ -31,7 +32,7 @@ function recoveryHelp(message,failed=false){
 }
 function reset(){token='';if(window.turnstile&&widgetId!==null){try{window.turnstile.reset(widgetId)}catch(_){}}}
 function render(){
-  const f=form(),a=action(); if(!f||!a||!window.turnstile)return;
+  const f=form(),a=action(); if(!f||!a||!window.turnstile||f.hidden||widgetId!==null)return;
   let host=f.querySelector('.f4u-turnstile');
   if(!host){host=document.createElement('div');host.className='f4u-turnstile';const submit=f.querySelector('[type="submit"]');submit?f.insertBefore(host,submit):f.appendChild(host)}
   try{
@@ -71,7 +72,7 @@ async function verify(){
   reset();
   return true;
 }
-window.F4UTurnstile={verify,reset,getToken:()=>token,ready};
+window.F4UTurnstile={verify,reset,render,getToken:()=>token,ready};
 function load(){
   const retry=document.getElementById('turnstileRetry');
   if(retry)retry.addEventListener('click',()=>location.reload());
