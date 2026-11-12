@@ -1,9 +1,10 @@
 (function(){'use strict';
 const URL='https://lrbimrlbskjweynxlgas.supabase.co',KEY='sb_publishable_RlmqwQM8ATOc7-ML9hvwgw_UljUEavh';
 if(!window.supabase||typeof window.supabase.createClient!=='function')throw new Error('Supabase JS v2 is required.');
+const passwordLinkPage=/\/(?:reset-password|recover-password)\.html$/i.test(location.pathname);
 if(!window.filings4uClientSupabase){
   window.filings4uClientSupabase=window.supabase.createClient(URL,KEY,{auth:{
-    persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,
+    persistSession:true,autoRefreshToken:true,detectSessionInUrl:!passwordLinkPage,
     storageKey:'filings4u-client-auth',flowType:'pkce'
   }});
 }
