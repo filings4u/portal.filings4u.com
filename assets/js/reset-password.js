@@ -37,10 +37,7 @@ async function establishLinkSession(){
     history.replaceState({},'',url.pathname+url.search+url.hash);
   }else if(code){
     const {error}=await db.auth.exchangeCodeForSession(code);
-    if(error){
-      const {data:existing}=await db.auth.getSession();
-      if(!existing?.session)throw error;
-    }
+    if(error)throw error;
   }else if(hasHashTokens){
     const {error}=await db.auth.setSession({access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token')});
     if(error)throw error;
