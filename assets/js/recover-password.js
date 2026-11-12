@@ -24,10 +24,7 @@ async function verifyRecoveryLink(){
     if(error)throw error;
   }else if(code){
     const {error}=await db.auth.exchangeCodeForSession(code);
-    if(error){
-      const current=await db.auth.getSession();
-      if(!current.data?.session)throw error;
-    }
+    if(error)throw error;
   }else if(hasHashTokens){
     const {error}=await db.auth.setSession({access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token')});
     if(error)throw error;
