@@ -35,7 +35,7 @@ $('forgotForm').addEventListener('submit',async event=>{
       if(error.status===429||/rate/i.test(error.message||'')){
         throw new Error('Too many reset requests. Please wait a few minutes and try again.');
       }
-      console.warn('Password reset request error:',error.message);
+      throw new Error('Unable to send a reset link right now. Please try again later.');
     }
 
     showMessage('If that email is associated with a filings4u client account, a password-reset link has been sent. Please check your inbox and spam folder.','ok');
