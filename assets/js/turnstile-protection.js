@@ -22,17 +22,45 @@ function showError(text){
   if(!e){e=document.createElement('div');e.className='turnstile-inline-error';e.setAttribute('role','alert');const f=form();f?.prepend(e)}
   e.textContent=text;
 }
+function recoveryHelp(message,failed=false){
+  if(page()!=='forgot-password.html')return;
+  const el=document.getElementById('turnstileHelp');
+  const retry=document.getElementById('turnstileRetry');
+  if(el)el.textContent=message;
+  if(retry)retry.hidden=!failed;
+}
 function reset(){token='';if(window.turnstile&&widgetId!==null){try{window.turnstile.reset(widgetId)}catch(_){}}}
 function render(){
   const f=form(),a=action(); if(!f||!a||!window.turnstile)return;
   let host=f.querySelector('.f4u-turnstile');
   if(!host){host=document.createElement('div');host.className='f4u-turnstile';const submit=f.querySelector('[type="submit"]');submit?f.insertBefore(host,submit):f.appendChild(host)}
-  widgetId=window.turnstile.render(host,{
-    sitekey:SITE_KEY,action:a,theme:'auto',size:'flexible',
-    callback:t=>{token=t;readyResolve?.(true)},
-    'expired-callback':()=>{token='';},
-    'error-callback':()=>{token='';showError('Security verification could not load. Refresh the page and try again.');}
-  });
+  try{
+    widgetId=window.turnstile.render(host,{
+      sitekey:SITE_KEY,action:a,theme:'auto',
+      size:page()==='forgot-password.html'?'normal':'flexible',
+      appearance:'always',
+      callback:t=>{
+        token=t;
+        recoveryHelp('Security verification complete.');
+        readyResolve?.(true);
+      },
+      'expired-callback':()=>{
+        token='';
+        recoveryHelp('Security verification expired. Please complete it again.');
+      },
+      'error-callback':()=>{
+        token='';
+        recoveryHelp('Security verification failed to load. Use Retry security verification.',true);
+        showError('Security verification could not load. Please retry.');
+      }
+    });
+    if(widgetId===undefined)throw new Error('Turnstile did not create a widget');
+    recoveryHelp('Complete the security verification above to request your link.');
+  }catch(error){
+    console.warn('[filings4u] Turnstile render failed:',error);
+    recoveryHelp('Security verification could not start. Use Retry security verification.',true);
+    showError('Security verification could not load. Please retry.');
+  }
 }
 async function verify(){
   const a=action(); if(!a)return true;
@@ -45,8 +73,10 @@ async function verify(){
 }
 window.F4UTurnstile={verify,reset,getToken:()=>token,ready};
 function load(){
+  const retry=document.getElementById('turnstileRetry');
+  if(retry)retry.addEventListener('click',()=>location.reload());
   if(window.turnstile){render();return}
-  const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.defer=true;s.onload=render;s.onerror=()=>showError('Security verification could not load. Refresh the page and try again.');document.head.appendChild(s);
+  const s=document.createElement('script');s.src='https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';s.async=true;s.defer=true;s.onload=render;s.onerror=()=>{recoveryHelp('Unable to load the security verification service. Use Retry security verification.',true);showError('Security verification could not load. Please retry.');};document.head.appendChild(s);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',load);else load();
 })();
