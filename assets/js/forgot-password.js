@@ -9,7 +9,7 @@ function showMessage(text,type='error'){window.filings4uNotify?.[type==='success
 }
 
 function resetRedirectUrl(){
-  return new URL('reset-password.html',window.location.href).href;
+  return new URL('recover-password.html',window.location.href).href;
 }
 
 $('forgotForm').addEventListener('submit',async event=>{
