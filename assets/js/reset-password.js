@@ -15,11 +15,15 @@ async function establishLinkSession(){
 
   const url=new URL(window.location.href);
   const tokenHash=url.searchParams.get('token_hash');
-  const type=url.searchParams.get('type');
+  const hash=new URLSearchParams(url.hash.replace(/^#/,''));
+  const type=url.searchParams.get('type')||hash.get('type');
+  const code=url.searchParams.get('code');
+  const hasHashTokens=!!(hash.get('access_token')&&hash.get('refresh_token'));
+  if(type&&type!=='invite')throw new Error('This link is for password recovery. Request a recovery link from Forgot Password.');
+  if(!tokenHash&&!code&&!hasHashTokens)throw new Error('Open your account invitation email to create your password.');
 
-  if(tokenHash&&type){
-    const allowed=new Set(['invite','recovery','signup','email']);
-    if(!allowed.has(type))throw new Error('This password link type is not supported.');
+  if(tokenHash){
+    if(type!=='invite')throw new Error('This is not a valid account invitation link.');
 
     const {error}=await db.auth.verifyOtp({
       token_hash:tokenHash,
@@ -31,9 +35,18 @@ async function establishLinkSession(){
     url.searchParams.delete('token_hash');
     url.searchParams.delete('type');
     history.replaceState({},'',url.pathname+url.search+url.hash);
+  }else if(code){
+    const {error}=await db.auth.exchangeCodeForSession(code);
+    if(error){
+      const {data:existing}=await db.auth.getSession();
+      if(!existing?.session)throw error;
+    }
+  }else if(hasHashTokens){
+    const {error}=await db.auth.setSession({access_token:hash.get('access_token'),refresh_token:hash.get('refresh_token')});
+    if(error)throw error;
   }
 
-  // detectSessionInUrl handles standard Supabase invite/recovery hash links.
+  // Complete the invited user session before verifying the account.
   // Give it one microtask before verifying the authenticated user.
   await new Promise(resolve=>setTimeout(resolve,50));
 
@@ -57,6 +70,7 @@ async function establishLinkSession(){
       throw new Error('This link is not associated with a filings4u client account.');
     }
 
+  history.replaceState({},'',url.pathname);
   return user;
 }
 
@@ -65,6 +79,7 @@ async function boot(){
     const user=await establishLinkSession();
     ready=true;
     $('resetForm').hidden=false;
+    window.F4UTurnstile?.render?.();
     $('pageText').textContent='Choose a new password for '+(user.email||'your account')+'.';
     showMessage('Secure link verified. You can now set your password.','ok');
     setTimeout(()=>$('password').focus(),100);
